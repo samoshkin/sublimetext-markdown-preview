@@ -3,7 +3,10 @@ Sublime Text 2 MarkDown preview
 
 A simple ST2 plugin to help you preview your markdown files quickly in you web browser.
 
-You can use builtin [python-markdown2][0] parser (default) or use the [github markdown API][5] for the conversion (edit your settings to select it).
+Markdown can be converted to Html sing different parsers:
+ - builtin [python-markdown2][0] parser (default)
+ - [github markdown API][5]
+ - [pandoc][7], a universal document converter
 
 If you have the ST2 LiveReload plugin, your browser will autorefresh the display when you save your file :)
 
@@ -21,6 +24,24 @@ If you have the ST2 LiveReload plugin, your browser will autorefresh the display
  - or bind some key in your user key binding, using a line like this one:
    `{ "keys": ["alt+m"], "command": "markdown_preview", "args": {"target": "browser"} },`
  - once converted a first time, the output HTML will be updated on each file save (with LiveReload plugin)
+ - to use [Github API][5] for conversion, set plugin settings.
+
+ 	```
+	{
+		"parser": "github",
+	}
+	```
+
+ - to use [pandoc][7] for conversion, set plugin settings. `args` are Pandoc-specific parameters. To change default html template, used for conversion, refer to `pandoc.html5` file.
+
+	```
+ 	{
+		"parser": "pandoc",
+		"pandoc": {
+			"args": ["-t", "html5", "-s", "--highlight-style", "pygments", "--mathml"]
+		}
+	}
+	```
 
 ## Uses :
 
@@ -37,3 +58,4 @@ The code is available at github [https://github.com/revolunet/sublimetext-markdo
  [4]: http://revolunet.mit-license.org
  [5]: http://developer.github.com/v3/markdown
  [6]: http://github.github.com/github-flavored-markdown/
+ [7]: http://johnmacfarlane.net/pandoc/
