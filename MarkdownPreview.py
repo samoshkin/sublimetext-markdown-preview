@@ -128,7 +128,8 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
             # for more info on args consult Pandoc doc
             # http://johnmacfarlane.net/pandoc/README.html
             cmd = ['pandoc']
-            cmd.append('--data-dir={0}'.format(os.path.join(sublime.packages_path(), 'Markdown Preview')))
+            plugin_path = os.path.dirname(os.path.abspath(__file__))
+            cmd.append('--data-dir={0}'.format(plugin_path));
             cmd.append('--template=pandoc')
             cmd += pandoc["args"]
 
