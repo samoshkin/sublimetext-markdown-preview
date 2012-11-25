@@ -7,6 +7,7 @@ import sys
 import re
 import json
 import urllib2
+import subprocess
 
 settings = sublime.load_settings('MarkdownPreview.sublime-settings')
 
@@ -76,6 +77,20 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
         html = RE_SOURCES.sub(tag_fix, html)
         return html
 
+    def build_html_contents(self, markdown_html, encoding):
+        # check if LiveReload ST2 extension installed
+        livereload_installed = ('LiveReload' in os.listdir(sublime.packages_path()))
+
+        html_contents = u'<!DOCTYPE html>'
+        html_contents += '<html><head><meta charset="%s">' % encoding
+        html_contents += self.getCSS()
+        if livereload_installed:
+            html_contents += '<script>document.write(\'<script src="http://\' + (location.host || \'localhost\').split(\':\')[0] + \':35729/livereload.js?snipver=1"></\' + \'script>\')</script>'
+        html_contents += '</head><body>'
+        html_contents += markdown_html
+        html_contents += '</body>'
+        return html_contents
+
     def run(self, edit, target='browser'):
         region = sublime.Region(0, self.view.size())
         encoding = self.view.encoding()
@@ -87,14 +102,14 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
 
         config_parser = settings.get('parser')
 
-        markdown_html = u'cannot convert markdown'
-        if config_parser and config_parser == 'github':
+        html_contents = None
+        if config_parser == 'github':
             sublime.status_message('converting markdown with github API...')
             try:
                 contents = contents.replace('%', '')    # see https://gist.github.com/3742011
                 data = json.dumps({"text": contents, "mode": "gfm"})
                 url = "https://api.github.com/markdown"
-                markdown_html = urllib2.urlopen(url, data).read().decode('utf-8')
+                html_contents = self.build_html_contents(urllib2.urlopen(url, data).read().decode('utf-8'), encoding)
             except urllib2.HTTPError:
                 sublime.error_message('github API responded in an unfashion way :/')
             except urllib2.URLError:
@@ -103,24 +118,46 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
                 sublime.error_message('cannot use github API to convert markdown. Please check your settings.')
             else:
                 sublime.status_message('converted markdown with github API successfully')
+        elif config_parser == 'pandoc':
+
+            # if markdown source file should be processed with pandoc, read pandoc-specific setting
+            pandoc = settings.get('pandoc')
+
+            # compose pandoc command
+            # pandoc executable should be on your PATH
+            # for more info on args consult Pandoc doc
+            # http://johnmacfarlane.net/pandoc/README.html
+            cmd = ['pandoc']
+            cmd.append('--data-dir={0}'.format(os.path.join(sublime.packages_path(), 'Markdown Preview')))
+            cmd.append('--template=pandoc')
+            cmd += pandoc["args"]
+
+            # Get extra pandoc arguments from the source file.
+            # The following template is recognized.
+            # <!-- [[ PANDOC --smart --toc ]] -->
+            matches = re.finditer(r'<!--\s+\[\[ PANDOC (?P<args>.*) \]\]\s+-->', contents)
+            for match in matches:
+                cmd += match.groupdict()['args'].split(' ')
+
+            # Execute command, supply source file to stdin, read output from stdout
+            # Result is the complete and correct html, there is not need to build head and concat body any more
+            # 'pandoc.html' at plugin's path is used as default template. Change it as you need.
+            try:
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                html_contents = subprocess.Popen(cmd, stdout = subprocess.PIPE, stdin = subprocess.PIPE, universal_newlines=True, startupinfo = startupinfo).communicate(contents)[0]
+            except Exception as e:
+                sublime.error_message("cannot convert markdown with pandoc.\nDetails: {0}".format(e))
+            else:
+                sublime.status_message('converted markdown with pandoc successfully')
         else:
             # convert the markdown
-            markdown_html = markdown2.markdown(contents, extras=['footnotes', 'toc', 'fenced-code-blocks', 'cuddled-lists', 'code-friendly'])
+            html_contents = markdown2.markdown(contents, extras=['footnotes', 'toc', 'fenced-code-blocks', 'cuddled-lists', 'code-friendly'])
             # postprocess the html
-            markdown_html = self.postprocessor(markdown_html)
+            html_contents = self.build_html_contents(self.postprocessor(html_contents), encoding)
 
-        # check if LiveReload ST2 extension installed
-        livereload_installed = ('LiveReload' in os.listdir(sublime.packages_path()))
-
-        # build the html
-        html_contents = u'<!DOCTYPE html>'
-        html_contents += '<html><head><meta charset="%s">' % encoding
-        html_contents += self.getCSS()
-        if livereload_installed:
-            html_contents += '<script>document.write(\'<script src="http://\' + (location.host || \'localhost\').split(\':\')[0] + \':35729/livereload.js?snipver=1"></\' + \'script>\')</script>'
-        html_contents += '</head><body>'
-        html_contents += markdown_html
-        html_contents += '</body>'
+        if not html_contents:
+            html_contents = self.build_html_contents('cannot convert markdown', encoding)
 
         if target in ['disk', 'browser']:
             # update output html file
