@@ -32,7 +32,7 @@ If you have the ST2 LiveReload plugin, your browser will autorefresh the display
 	}
 	```
 
- - to use [pandoc][7] for conversion, set plugin settings. `args` are Pandoc-specific parameters. To change default html template, used for conversion, refer to `pandoc.html5` file.
+ - to use [pandoc][7] for conversion, set plugin settings. `args` are Pandoc-specific parameters. To change default html template, which is used for conversion, refer to `templates/pandoc.html5` file.
 
 	```
  	{

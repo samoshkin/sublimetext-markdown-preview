@@ -11,6 +11,7 @@ import subprocess
 
 settings = sublime.load_settings('MarkdownPreview.sublime-settings')
 
+plugin_path = os.path.dirname(os.path.abspath(__file__))
 
 def getTempMarkdownPreviewPath(view):
     " return a permanent full path of the temp markdown preview file "
@@ -128,7 +129,6 @@ class MarkdownPreviewCommand(sublime_plugin.TextCommand):
             # for more info on args consult Pandoc doc
             # http://johnmacfarlane.net/pandoc/README.html
             cmd = ['pandoc']
-            plugin_path = os.path.dirname(os.path.abspath(__file__))
             cmd.append('--data-dir={0}'.format(plugin_path));
             cmd.append('--template=pandoc')
             cmd += pandoc["args"]
