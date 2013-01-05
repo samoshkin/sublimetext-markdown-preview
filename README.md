@@ -17,6 +17,7 @@ If you have the ST2 LiveReload plugin, your browser will autorefresh the display
  - you should use [sublime package manager][3]
  - use `cmd+shift+P` then `Package Control: Install Package`
  - look for `Markdown Preview` and install it.
+ - If you are going to use Pandoc to process markdown, [install it](http://johnmacfarlane.net/pandoc/installing.html) before. `pandoc` executable should be on your PATH.
 
 ## Usage :
 
